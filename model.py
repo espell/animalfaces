@@ -23,7 +23,7 @@ import keras
 from keras.callbacks import EarlyStopping
 
 img_size = 224
-num_epochs = 20
+num_epochs = 30
 labels = ['cat', 'dog', 'wild']
 
 def get_data(data_dir):
@@ -35,8 +35,9 @@ def get_data(data_dir):
             try:
                 img = cv2.imread(os.path.join(path, img))
                 resized_arr = cv2.resize(img, (img_size, img_size))
-                gray=cv2.cvtColor(resized_arr, cv2.COLOR_BGR2GRAY)
-                data.append([gray, class_num])
+                data.append([resized_arr, class_num]) #normal resized image
+                # gray=cv2.cvtColor(resized_arr, cv2.COLOR_BGR2GRAY)
+                # data.append([gray, class_num])
             except Exception as e:
                 print(e)
     return np.array(data)
@@ -55,6 +56,7 @@ y_test = []
 
 for feature, label in train:
   x_train.append(feature)
+  #print(label)
   y_train.append(label)
 
 for feature, label in test:
@@ -64,19 +66,21 @@ for feature, label in test:
 x_train = np.array(x_train,dtype=np.float16) / 255
 x_test = np.array(x_test,dtype=np.float16) / 255
 
-print("######################    Training and test shapes  ##########################")
-print(x_train.shape)
-print(x_test.shape)
-print("")
-
-x_train=x_train.reshape(-1, img_size, img_size, 1)
+x_train=x_train.reshape(-1, img_size, img_size, 3)
 y_train = np.array(y_train)
 
-x_test=x_test.reshape(-1, img_size, img_size, 1)
+x_test=x_test.reshape(-1, img_size, img_size, 3)
 y_test = np.array(y_test)
 
+print("######################    Training and test shapes  ##########################")
+print(x_train.shape)
+print(y_train.shape)
+print(x_test.shape)
+print(y_test.shape)
+print("")
+
 model = Sequential()
-model.add(InputLayer(input_shape=(img_size, img_size, 1)))
+model.add(InputLayer(input_shape=(img_size, img_size, 3)))
 
 model.add(ZeroPadding2D((3, 3)))
 model.add(Conv2D(112, activation='relu', kernel_size=(3, 3)))
@@ -106,7 +110,7 @@ model.compile(optimizer =rms , loss =tf.keras.losses.SparseCategoricalCrossentro
 
 X_train,x_valid,Y_train,y_valid = train_test_split(x_train,y_train,train_size = 0.8,test_size = 0.2,random_state =42)
 
-history = model.fit(X_train,Y_train,epochs = 100,validation_data = (x_valid,y_valid))
+history = model.fit(X_train,Y_train,epochs = 30,validation_data = (x_valid,y_valid))
 
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']

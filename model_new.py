@@ -24,10 +24,10 @@ import keras
 from keras.callbacks import EarlyStopping
 
 img_size = 224
-num_epochs = 20
+num_epochs = 30
 labels = ['cat', 'dog', 'wild']
 
-def get_data(data_dir):
+def get_data(data_dir, is_train):
     data = []
     for label in labels:
         path = os.path.join(data_dir, label)
@@ -37,8 +37,11 @@ def get_data(data_dir):
                 img = cv2.imread(os.path.join(path, img))
                 resized_arr = cv2.resize(img, (img_size, img_size))
                 gray=cv2.cvtColor(resized_arr, cv2.COLOR_BGR2GRAY)
-                data.append([gray, class_num])
-                data.append([cv2.flip(gray, 0), class_num]) #augment and add flipped image as well
+                data.append([resized_arr, class_num]) #normal resized image
+                if is_train:
+                    data.append([gray, class_num]) #colored gray
+                    data.append([cv2.blur(resized_arr, (10,10)), class_num]) #blurred image
+                    data.append([cv2.flip(resized_arr, 0), class_num]) #augment and add flipped image as well
             except Exception as e:
                 print(e)
     return np.array(data)
@@ -46,9 +49,9 @@ def get_data(data_dir):
 print("getting train")
 train_path = r'C:\Users\emmas\Documents\cs230\faces\train'
 test_path = r'C:\Users\emmas\Documents\cs230\faces\val'
-train=get_data(train_path)
+train=get_data(train_path, True)
 print("getting test")
-test=get_data(test_path)
+test=get_data(test_path, False)
 
 x_train = []
 y_train = []
@@ -71,14 +74,14 @@ print(x_train.shape)
 print(x_test.shape)
 print("")
 
-x_train=x_train.reshape(-1, img_size, img_size, 1)
+x_train=x_train.reshape(-1, img_size, img_size, 3)
 y_train = np.array(y_train)
 
-x_test=x_test.reshape(-1, img_size, img_size, 1)
+x_test=x_test.reshape(-1, img_size, img_size, 3)
 y_test = np.array(y_test)
 
 model = Sequential()
-model.add(InputLayer(input_shape=(img_size, img_size, 1)))
+model.add(InputLayer(input_shape=(img_size, img_size, 3)))
 
 model.add(ZeroPadding2D((3, 3)))
 model.add(Conv2D(112, activation='relu', kernel_size=(3, 3)))
@@ -108,7 +111,7 @@ model.compile(optimizer =rms , loss =tf.keras.losses.SparseCategoricalCrossentro
 
 X_train,x_valid,Y_train,y_valid = train_test_split(x_train,y_train,train_size = 0.8,test_size = 0.2,random_state =42)
 
-history = model.fit(X_train,Y_train,epochs = 100,validation_data = (x_valid,y_valid))
+history = model.fit(X_train,Y_train,epochs = 30,validation_data = (x_valid,y_valid))
 
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']
